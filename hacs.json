@@ -1,0 +1,8 @@
+{
+  "name": "SPRSUN Heat Pump Modbus",
+  "content_in_root": false,
+  "filename": "sprsun_modbus",
+  "render_readme": true,
+  "homeassistant": "2023.1.0",
+  "domains": ["sensor", "climate", "switch", "select", "number", "binary_sensor"]
+}
