@@ -516,12 +516,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         success = await hass.async_add_executor_job(
             client.write_register,
             REG_PUMP_MODE,
-            PUMP_MODE_ALWAYS,  # 3 = Always
+            PUMP_MODE_NORMAL,  # 0 = Normal
             0,
             slave_id
         )
         if success:
-            _LOGGER.info("Pump Mode nastaven na Always")
+            _LOGGER.info("Pump Mode nastaven na Normal")
         else:
             _LOGGER.warning("Nepodařilo se nastavit Pump Mode na Always")
         
