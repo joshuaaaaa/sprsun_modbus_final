@@ -15,6 +15,11 @@ from .const import (
     CONF_SLAVE_ID,
     DEFAULT_SLAVE_ID,
     COIL_UNIT_ON,
+    COIL_ANTILEG_FUNCTION,
+    COIL_MANUAL_DEFROST,
+    COIL_SG_FUNCTION,
+    COIL_SG_HOTWATER_HEATER,
+    COIL_SG_HEATER_PIPE_OR_TANK,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -32,6 +37,11 @@ async def async_setup_entry(
 
     switches = [
         SPRSUNSwitch(coordinator, client, slave_id, "unit_on", "Unit Power", COIL_UNIT_ON, "unit_on"),
+        SPRSUNSwitch(coordinator, client, slave_id, "antileg_function", "Anti-Legionella Function", COIL_ANTILEG_FUNCTION, "antileg_function"),
+        SPRSUNSwitch(coordinator, client, slave_id, "manual_defrost", "Manual Defrosting", COIL_MANUAL_DEFROST, "manual_defrost"),
+        SPRSUNSwitch(coordinator, client, slave_id, "sg_function", "SG Ready Function", COIL_SG_FUNCTION, "sg_function"),
+        SPRSUNSwitch(coordinator, client, slave_id, "sg_hotwater_heater", "SG Ready Hot Water Heater", COIL_SG_HOTWATER_HEATER, "sg_hotwater_heater"),
+        SPRSUNSwitch(coordinator, client, slave_id, "sg_heater_pipe_or_tank", "SG Heater Location (Pipe/Tank)", COIL_SG_HEATER_PIPE_OR_TANK, "sg_heater_pipe_or_tank"),
     ]
 
     async_add_entities(switches)

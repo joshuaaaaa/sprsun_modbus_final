@@ -959,6 +959,111 @@ class SPRSUNModbusClient:
 
         return False
 
+    def write_register_float32(
+        self, register: int, value: float, slave: int = 1
+    ) -> bool:
+        """Write 32-bit float to holding registers (2 consecutive 16-bit registers)."""
+        import struct
+        max_retries = 3
+        retry_delay = 0.5
+
+        # Convert float to 2 x 16-bit registers (IEEE 754 float32, big-endian)
+        try:
+            bytes_data = struct.pack('>f', value)
+            high, low = struct.unpack('>HH', bytes_data)
+        except Exception as err:
+            _LOGGER.error("Error converting float value %f to registers: %s", value, err)
+            return False
+
+        # Apply register offset if configured
+        actual_address = register + self.register_offset
+
+        _LOGGER.info("Writing float32 register %d (40%03d, actual address %d): value=%.2f, high=0x%04X, low=0x%04X",
+                    register, register + 1, actual_address, value, high, low)
+
+        for attempt in range(max_retries):
+            try:
+                if not self._ensure_connected():
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay)
+                        continue
+                    return False
+
+                # Small delay between operations
+                if self._operation_count > 0:
+                    time.sleep(0.05)
+
+                kwargs = _add_unit_kw(self.client.write_registers, {
+                    "address": actual_address,
+                    "values": [high, low],
+                }, slave)
+
+                result = self.client.write_registers(**kwargs)
+
+                if result is None or getattr(result, "isError", lambda: True)():
+                    if attempt < max_retries - 1:
+                        _LOGGER.warning("Error writing float32 register %d (40%03d): %s, retrying...",
+                                      register, register + 1, result)
+                        time.sleep(retry_delay)
+                        continue
+                    _LOGGER.error("Error writing float32 register %d (40%03d): %s after %d attempts",
+                                register, register + 1, result, max_retries)
+                    return False
+
+                # Increment operation counter on success
+                self._operation_count += 1
+                self._last_successful_op = time.time()
+                _LOGGER.info("Successfully wrote float32 register %d (40%03d)", register, register + 1)
+                return True
+
+            except ConnectionException as err:
+                if attempt < max_retries - 1:
+                    _LOGGER.warning("Connection exception writing float32 register %d: %s, forcing reconnect...", register, err)
+                    self.client = None
+                    time.sleep(retry_delay)
+                    continue
+                _LOGGER.error("Connection exception writing float32 register %d: %s after %d attempts", register, err, max_retries)
+                return False
+            except OSError as err:
+                if err.errno == errno.ECONNREFUSED:
+                    if attempt < max_retries - 1:
+                        _LOGGER.warning("Connection refused writing float32 register %d, forcing reconnect...", register)
+                        self.client = None
+                        time.sleep(retry_delay)
+                        continue
+                    _LOGGER.error("Connection refused writing float32 register %d after %d attempts", register, max_retries)
+                    return False
+                elif err.errno in (errno.ECONNRESET, errno.EPIPE, errno.ETIMEDOUT):
+                    if attempt < max_retries - 1:
+                        _LOGGER.warning("Connection error (errno %d) writing float32 register %d, forcing reconnect...", err.errno, register)
+                        self.client = None
+                        time.sleep(retry_delay)
+                        continue
+                    _LOGGER.error("Connection error writing float32 register %d: %s after %d attempts", register, err, max_retries)
+                    return False
+                if attempt < max_retries - 1:
+                    _LOGGER.warning("OS error writing float32 register %d: %s, retrying...", register, err)
+                    time.sleep(retry_delay)
+                    continue
+                _LOGGER.error("OS error writing float32 register %d: %s after %d attempts", register, err, max_retries)
+                return False
+            except ModbusException as err:
+                if attempt < max_retries - 1:
+                    _LOGGER.warning("Modbus exception writing float32 register %d: %s, retrying...", register, err)
+                    time.sleep(retry_delay)
+                    continue
+                _LOGGER.error("Modbus exception writing float32 register %d: %s after %d attempts", register, err, max_retries)
+                return False
+            except Exception as err:
+                if attempt < max_retries - 1:
+                    _LOGGER.warning("Error writing float32 register %d: %s, retrying...", register, err)
+                    time.sleep(retry_delay)
+                    continue
+                _LOGGER.error("Error writing float32 register %d: %s after %d attempts", register, err, max_retries)
+                return False
+
+        return False
+
     def write_coil(self, coil: int, value: bool, slave: int = 1) -> bool:
         """Write single coil."""
         max_retries = 3
