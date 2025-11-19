@@ -175,9 +175,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 data["fan_output"] = to_temp(sensors_regs[9])  # 197
                 data["pump_output"] = to_temp(sensors_regs[10])  # 198
                 data["dc_fan1_output"] = to_temp(sensors_regs[11])  # 199
-                data["dc_fan1_feedback"] = to_int(sensors_regs[12])  # 200 (RPM - INT)
+                data["dc_fan1_feedback"] = to_int(sensors_regs[14])  # 202 (RPM - INT) - Fan1 RPM podle tabulky
                 data["dc_fan2_output"] = to_temp(sensors_regs[13])  # 201
-                data["dc_fan2_feedback"] = to_int(sensors_regs[14])  # 202 (RPM - INT)
+                data["dc_fan2_feedback"] = to_int(sensors_regs[12])  # 200 (RPM - INT) - Fan2 RPM podle tabulky
                 data["required_cap"] = to_temp(sensors_regs[15])  # 203
                 data["actual_cap"] = to_temp(sensors_regs[16])  # 204
                 data["actual_speed"] = to_int(sensors_regs[17])  # 205 (RPM - INT)
@@ -327,11 +327,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 data["working_hours_fan"] = combine_32bit_registers(work_hours_regs[4], work_hours_regs[5])
                 data["working_hours_3way"] = combine_32bit_registers(work_hours_regs[6], work_hours_regs[7])
 
-            # ========== BULK READ 11: Water Flow and Unit Power (372-389) - 18 registers ==========
+            # ========== BULK READ 11: Water Flow and Unit Power (372-390) - 19 registers ==========
+            # ZMĚNA: Přidán registr 390 pro Unit_COP (pokud je 32-bit float místo 16-bit scaled)
             power_regs = await hass.async_add_executor_job(
-                client.read_holding_registers_bulk, REG_WATER_FLOW, 18, 0, slave_id, True  # raw=True
+                client.read_holding_registers_bulk, REG_WATER_FLOW, 19, 0, slave_id, True  # raw=True, změněno z 18 na 19
             )
-            if power_regs and len(power_regs) == 18:
+            if power_regs and len(power_regs) == 19:
                 # Water flow (372-373, 2 registers REAL/FLOAT32)
                 water_flow_raw = registers_to_float32(power_regs[0], power_regs[1])
                 data["water_flow"] = water_flow_raw if water_flow_raw is not None else None
@@ -367,9 +368,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 # Unit power (387-388, 2 registers REAL/FLOAT32)
                 unit_power_raw = registers_to_float32(power_regs[15], power_regs[16])
                 data["unit_power"] = unit_power_raw if unit_power_raw is not None else None
-                
-                # Unit COP (389, single register with 0.1 precision)
-                data["unit_cop"] = to_signed_16bit(power_regs[17])
+
+                # Unit COP (389-390, 2 registers REAL/FLOAT32)
+                # ZMĚNA: Zkouším jako 32-bit float místo 16-bit scaled (tabulka říká byte=1, ale může to být chyba)
+                unit_cop_raw = registers_to_float32(power_regs[17], power_regs[18])
+                data["unit_cop"] = unit_cop_raw if unit_cop_raw is not None else None
+
+                # Pokud Unit_COP nefunguje jako float32, zkuste tuto alternativu (16-bit scaled):
+                # data["unit_cop"] = to_signed_16bit(power_regs[17])
 
             # ========== BULK READ 12: Power consumption records (401-414) - 14 registers ==========
             # Note: Each record is 2 registers (REAL/FLOAT32)
