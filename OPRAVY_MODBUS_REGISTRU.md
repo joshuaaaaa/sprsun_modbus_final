@@ -23,27 +23,26 @@ V kódu bylo chybně:
 - `const.py` řádky 57-59: Opraveny registry
 - `__init__.py` řádky 178-180: Opraveno mapování
 
-### Chyba #2: Unit_COP Nesprávný Datový Typ ✓ OPRAVENO
-**Problém:** Unit_COP nefungoval.
+### Chyba #2: Unit_COP Špatné Mapování v Bulkovém Čtení ✓ OPRAVENO
+**Problém:** Unit_COP nefungoval po včerejším update.
 
 Podle tabulky:
 - Unit_COP: add=389, modbus=40390, **byte=1**, data type=real
 
-V kódu bylo implementováno jako:
-- 1 registr (16-bit) s přesností 0.1 (dělení 10)
+**Příčina:**
+Po včerejších změnách se změnila struktura bulkového čtení a Unit_COP se nečetl správně.
 
-**Pravděpodobná příčina:**
-Dokumentace výrobce má chybu - Unit_COP je pravděpodobně **32-bit IEEE 754 float** (2 registry), ne 16-bit scaled integer.
+**Testováno:**
+1. ✗ 32-bit IEEE 754 float (2 registry) - zobrazilo 8.39e-43 (nesmysl)
+2. ✓ 16-bit signed / 10 (1 registr) - funguje, zobrazuje správnou hodnotu ~3.0
 
-**Důkazy:**
-- Unit Power (add=387, byte=2) je těsně před Unit_COP a je čten jako 32-bit float
-- Pokud by Unit_COP byl 16-bit scaled, hodnota by byla mezi 0-6553.5 (max 16-bit signed / 10)
-- COP hodnoty jsou typicky 2.0-6.0, což lépe sedí na IEEE 754 float
+**Závěr:**
+Tabulka výrobce je **správná** - Unit_COP je 1 registr (16-bit signed) s přesností 0.1.
 
 **Oprava:**
-1. `const.py` řádek 159: Změněn komentář, Unit_COP je nyní 2 registry (40390-40391)
-2. `__init__.py` řádek 332-334: Bulkové čtení změněno z 18 na 19 registrů (372-390)
-3. `__init__.py` řádek 372-378: Unit_COP čten jako 32-bit float místo 16-bit scaled
+1. `const.py` řádek 159: Potvrzen komentář, Unit_COP je 1 registr s 0.1 precision
+2. `__init__.py` řádek 330-334: Bulkové čtení 18 registrů (372-389)
+3. `__init__.py` řádek 371-372: Unit_COP čten jako 16-bit signed / 10
 
 ## Testování
 
@@ -52,37 +51,28 @@ Dokumentace výrobce má chybu - Unit_COP je pravděpodobně **32-bit IEEE 754 f
 2. Počkejte na první update dat (30 sekund)
 
 ### Co kontrolovat:
-1. **sensor.sprsun_unit_cop** - měla by zobrazit rozumnou hodnotu (např. 3.2, 4.5)
-   - Pokud zobrazuje nesmyslnou hodnotu (např. 1.5e-10), vrátíme se k 16-bit scaled
-2. **sensor.sprsun_dc_fan1_feedback** - Fan1 RPM
-3. **sensor.sprsun_dc_fan2_feedback** - Fan2 RPM
+1. ✓ **sensor.sprsun_unit_cop** - zobrazuje správnou hodnotu ~3.0 (16-bit scaled formát)
+2. ✓ **sensor.sprsun_dc_fan1_feedback** - Fan1 RPM (registr 202)
+3. ✓ **sensor.sprsun_dc_fan2_feedback** - Fan2 RPM (registr 200)
 
-### Pokud Unit_COP stále nefunguje:
+### Poznámka k Unit_COP:
+Otestovali jsme oba formáty:
+- **32-bit float** ❌ zobrazovalo 8.39e-43 (nesmysl)
+- **16-bit scaled** ✓ funguje správně (hodnota ~3.0)
 
-Zkuste alternativní řešení v `__init__.py` řádek 378:
-```python
-# Zakomentujte řádky 374-375:
-# unit_cop_raw = registers_to_float32(power_regs[17], power_regs[18])
-# data["unit_cop"] = unit_cop_raw if unit_cop_raw is not None else None
-
-# Odkomentujte řádek 378:
-data["unit_cop"] = to_signed_16bit(power_regs[17])
-
-# A změňte řádek 333 zpět na 18 registrů:
-client.read_holding_registers_bulk, REG_WATER_FLOW, 18, 0, slave_id, True
-```
+Tabulka výrobce je správná - Unit_COP je 1 registr s 0.1 precision.
 
 ## Souhrn Změn
 
 ### Soubory upraveny:
 1. `custom_components/sprsun_modbus/const.py`
-   - Řádek 57-59: Opraveny Fan1/Fan2 RPM registry
-   - Řádek 159: Aktualizován komentář pro Unit_COP
+   - Řádek 57-59: Opraveny Fan1/Fan2 RPM registry (prohozeny podle tabulky)
+   - Řádek 159: Potvrzen komentář pro Unit_COP (1 registr, 0.1 precision)
 
 2. `custom_components/sprsun_modbus/__init__.py`
-   - Řádek 178-180: Opraveno mapování Fan1/Fan2 feedback
-   - Řádek 332-334: Změněno bulkové čtení z 18 na 19 registrů
-   - Řádek 372-378: Unit_COP čten jako 32-bit float
+   - Řádek 178-180: Opraveno mapování Fan1/Fan2 feedback (prohozeny indexy)
+   - Řádek 330-334: Bulkové čtení 18 registrů (372-389)
+   - Řádek 371-372: Unit_COP čten jako 16-bit signed / 10
 
 ### Nové soubory:
 1. `validate_register_mapping.md` - Kompletní validace všech registrů

@@ -153,10 +153,10 @@ REG_WORKING_HOURS_COMP = 366  # 40367-40368 - WorkingHours.Comp (UDINT, 2 regist
 REG_WORKING_HOURS_FAN = 368  # 40369-40370 - WorkingHours.Fan (UDINT, 2 registers)
 REG_WORKING_HOURS_3WAY = 370  # 40371-40372 - WorkingHours.Three way valve (UDINT, 2 registers)
 
-# Water Flow and Power (40373-40391)
+# Water Flow and Power (40373-40390)
 REG_WATER_FLOW = 372  # 40373-40374 - Water Flow Value L/h (REAL, 2 registers)
 REG_UNIT_POWER = 387  # 40388-40389 - Unit Power W (REAL, 2 registers)
-REG_UNIT_COP = 389  # 40390-40391 - Unit_COP (REAL, 2 registers) - OPRAVENO: Tabulka říká byte=1, ale ve skutečnosti to může být 32-bit float
+REG_UNIT_COP = 389  # 40390 - Unit_COP (REAL, 1 register with 0.1 precision) - Tabulka správně uvádí byte=1
 
 # SG Ready (40356-40364)
 REG_SG_MODE = 355  # 40356 - SG_Mode: 0=NORMAL, 1=SG-, 2=SG+, 3=SG++ (INT)
