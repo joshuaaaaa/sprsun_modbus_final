@@ -14,7 +14,6 @@ from .const import (
     DOMAIN,
     CONF_SLAVE_ID,
     DEFAULT_SLAVE_ID,
-    COIL_UNIT_ON,
     COIL_ANTILEG_FUNCTION,
     COIL_MANUAL_DEFROST,
     COIL_SG_FUNCTION,
@@ -36,7 +35,6 @@ async def async_setup_entry(
     slave_id = entry.data.get(CONF_SLAVE_ID, DEFAULT_SLAVE_ID)
 
     switches = [
-        SPRSUNSwitch(coordinator, client, slave_id, "unit_on", "Unit Power", COIL_UNIT_ON, "unit_on"),
         SPRSUNSwitch(coordinator, client, slave_id, "antileg_function", "Anti-Legionella Function", COIL_ANTILEG_FUNCTION, "antileg_function"),
         SPRSUNSwitch(coordinator, client, slave_id, "manual_defrost", "Manual Defrosting", COIL_MANUAL_DEFROST, "manual_defrost"),
         SPRSUNSwitch(coordinator, client, slave_id, "sg_function", "SG Ready Function", COIL_SG_FUNCTION, "sg_function"),
