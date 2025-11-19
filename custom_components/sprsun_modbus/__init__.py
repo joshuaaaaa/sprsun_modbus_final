@@ -20,6 +20,7 @@ PLATFORMS: list[Platform] = [
     Platform.SELECT,
     Platform.NUMBER,
     Platform.BINARY_SENSOR,
+    Platform.SWITCH,
 ]
 
 
@@ -87,7 +88,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 DISCRETE_CRANK_HEATER, DISCRETE_CHASSIS_HEATER, DISCRETE_FLOW_SWITCH,
                 DISCRETE_COMP_STATUS, DISCRETE_FAN_STATUS, DISCRETE_SG_SIGNAL, DISCRETE_EVU_SIGNAL,
                 DISCRETE_DOUT_VAL_1, DISCRETE_DOUT_VAL_9, DISCRETE_AC_LINKAGE,
-                COIL_FAN_LOW, COIL_COOLING_LINKAGE, COIL_HEATING_LINKAGE, COIL_TERMINAL_PUMP
+                COIL_FAN_LOW, COIL_COOLING_LINKAGE, COIL_HEATING_LINKAGE, COIL_TERMINAL_PUMP,
+                COIL_ANTILEG_FUNCTION, COIL_MANUAL_DEFROST, COIL_SG_FUNCTION,
+                COIL_SG_HOTWATER_HEATER, COIL_SG_HEATER_PIPE_OR_TANK
             )
 
             data = {}
@@ -403,7 +406,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 start_min = antileg_regs[4]
                 if start_min is not None and start_min > 32767:
                     start_min = start_min - 65536
-                    
+
+                # Individual values for number entities
+                data["antileg_time_start_hr"] = int(start_hr) if start_hr is not None else None
+                data["antileg_time_start_min"] = int(start_min) if start_min is not None else None
+
+                # Formatted string for sensor entity
                 if start_hr is not None and start_min is not None:
                     data["antileg_time_start"] = f"{int(start_hr):02d}:{int(start_min):02d}"
                 else:
@@ -415,7 +423,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 end_min = antileg_regs[6]
                 if end_min is not None and end_min > 32767:
                     end_min = end_min - 65536
-                    
+
+                # Individual values for number entities
+                data["antileg_time_end_hr"] = int(end_hr) if end_hr is not None else None
+                data["antileg_time_end_min"] = int(end_min) if end_min is not None else None
+
+                # Formatted string for sensor entity
                 if end_hr is not None and end_min is not None:
                     data["antileg_time_end"] = f"{int(end_hr):02d}:{int(end_min):02d}"
                 else:
@@ -481,6 +494,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 client.read_discrete_input, COIL_FAN_LOW, slave_id
             )
             data["heater"] = data.get("dout_val_9")
+
+            # ========== READ COILS (writable) ==========
+            # Anti-legionella
+            data["antileg_function"] = await hass.async_add_executor_job(
+                client.read_coil, COIL_ANTILEG_FUNCTION, slave_id
+            )
+            # Manual defrosting
+            data["manual_defrost"] = await hass.async_add_executor_job(
+                client.read_coil, COIL_MANUAL_DEFROST, slave_id
+            )
+            # SG Ready coils
+            data["sg_function"] = await hass.async_add_executor_job(
+                client.read_coil, COIL_SG_FUNCTION, slave_id
+            )
+            data["sg_hotwater_heater"] = await hass.async_add_executor_job(
+                client.read_coil, COIL_SG_HOTWATER_HEATER, slave_id
+            )
+            data["sg_heater_pipe_or_tank"] = await hass.async_add_executor_job(
+                client.read_coil, COIL_SG_HEATER_PIPE_OR_TANK, slave_id
+            )
 
             # ========== READ ALL ALARMS (discrete inputs 13-188) ==========
             # Read alarms in bulk - 176 discrete inputs

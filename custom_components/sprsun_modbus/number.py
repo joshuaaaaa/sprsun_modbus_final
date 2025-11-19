@@ -16,6 +16,12 @@ from . import const
 DOMAIN = const.DOMAIN
 CONF_SLAVE_ID = const.CONF_SLAVE_ID
 DEFAULT_SLAVE_ID = const.DEFAULT_SLAVE_ID
+REG_ANTILEG_TEMP_SETP = const.REG_ANTILEG_TEMP_SETP
+REG_ANTILEG_WEEKDAY = const.REG_ANTILEG_WEEKDAY
+REG_ANTILEG_TIME_START_HR = const.REG_ANTILEG_TIME_START_HR
+REG_ANTILEG_TIME_START_MIN = const.REG_ANTILEG_TIME_START_MIN
+REG_ANTILEG_TIME_END_HR = const.REG_ANTILEG_TIME_END_HR
+REG_ANTILEG_TIME_END_MIN = const.REG_ANTILEG_TIME_END_MIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -476,6 +482,91 @@ async def async_setup_entry(
             UnitOfTemperature.CELSIUS,
             1,
         ),
+        # Anti-legionella settings
+        SPRSUNNumberFloat32(
+            coordinator,
+            client,
+            slave_id,
+            "antileg_temp_setp_control",
+            "Anti-Legionella Temperature Setpoint Control",
+            REG_ANTILEG_TEMP_SETP,
+            "antileg_temp_setp",
+            30.0,
+            70.0,
+            0.5,
+            UnitOfTemperature.CELSIUS,
+            entity_category=None,
+        ),
+        SPRSUNNumber(
+            coordinator,
+            client,
+            slave_id,
+            "antileg_weekday_control",
+            "Anti-Legionella Weekday Control",
+            REG_ANTILEG_WEEKDAY,
+            "antileg_weekday",
+            1,
+            7,
+            1,
+            None,
+            0,
+        ),
+        SPRSUNNumber(
+            coordinator,
+            client,
+            slave_id,
+            "antileg_time_start_hr_control",
+            "Anti-Legionella Start Hour",
+            REG_ANTILEG_TIME_START_HR,
+            "antileg_time_start_hr",
+            0,
+            23,
+            1,
+            "h",
+            0,
+        ),
+        SPRSUNNumber(
+            coordinator,
+            client,
+            slave_id,
+            "antileg_time_start_min_control",
+            "Anti-Legionella Start Minute",
+            REG_ANTILEG_TIME_START_MIN,
+            "antileg_time_start_min",
+            0,
+            59,
+            1,
+            "min",
+            0,
+        ),
+        SPRSUNNumber(
+            coordinator,
+            client,
+            slave_id,
+            "antileg_time_end_hr_control",
+            "Anti-Legionella End Hour",
+            REG_ANTILEG_TIME_END_HR,
+            "antileg_time_end_hr",
+            0,
+            23,
+            1,
+            "h",
+            0,
+        ),
+        SPRSUNNumber(
+            coordinator,
+            client,
+            slave_id,
+            "antileg_time_end_min_control",
+            "Anti-Legionella End Minute",
+            REG_ANTILEG_TIME_END_MIN,
+            "antileg_time_end_min",
+            0,
+            59,
+            1,
+            "min",
+            0,
+        ),
     ]
 
     # Add Timezone1 and Timezone2 scheduler entities dynamically
@@ -570,6 +661,59 @@ class SPRSUNNumber(CoordinatorEntity, NumberEntity):
             self._register,
             value,
             self._decimal_places,
+            self._slave_id,
+        )
+
+        if success:
+            await self.coordinator.async_request_refresh()
+
+
+class SPRSUNNumberFloat32(CoordinatorEntity, NumberEntity):
+    """SPRSUN Heat Pump number entity for 32-bit float values."""
+
+    _attr_mode = NumberMode.BOX
+
+    def __init__(
+        self,
+        coordinator,
+        client,
+        slave_id,
+        number_id,
+        name,
+        register,
+        data_key,
+        min_value,
+        max_value,
+        step,
+        unit,
+        entity_category=EntityCategory.CONFIG,
+    ):
+        """Initialize the float32 number entity."""
+        super().__init__(coordinator)
+        self._client = client
+        self._slave_id = slave_id
+        self._number_id = number_id
+        self._attr_name = f"SPRSUN {name}"
+        self._attr_unique_id = f"{DOMAIN}_{number_id}"
+        self._register = register
+        self._data_key = data_key
+        self._attr_native_min_value = min_value
+        self._attr_native_max_value = max_value
+        self._attr_native_step = step
+        self._attr_native_unit_of_measurement = unit
+        self._attr_entity_category = entity_category
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the current value."""
+        return self.coordinator.data.get(self._data_key)
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Set new value (32-bit float)."""
+        success = await self.hass.async_add_executor_job(
+            self._client.write_register_float32,
+            self._register,
+            value,
             self._slave_id,
         )
 

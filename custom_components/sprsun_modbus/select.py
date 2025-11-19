@@ -17,9 +17,11 @@ from .const import (
     REG_WORK_MODE,
     REG_FAN_MODE,
     REG_PUMP_MODE,
+    REG_SG_MODE,
     WORK_MODE_MAP,
     FAN_MODE_MAP,
     PUMP_MODE_MAP,
+    SG_MODE_MAP,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -67,6 +69,17 @@ async def async_setup_entry(
             REG_PUMP_MODE,
             "pump_mode",
             PUMP_MODE_MAP,
+            False,
+        ),
+        SPRSUNSelect(
+            coordinator,
+            client,
+            slave_id,
+            "sg_mode",
+            "SG Ready Mode",
+            REG_SG_MODE,
+            "sg_mode",
+            SG_MODE_MAP,
             False,
         ),
     ]
