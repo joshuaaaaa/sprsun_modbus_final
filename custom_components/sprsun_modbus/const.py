@@ -54,9 +54,9 @@ REG_COIL_TEMP = 196  # 40197 - B9: Coil temperature (REAL, 0.1)
 REG_FAN_OUTPUT = 197  # 40198 - Y1: Fan output (REAL, 0.1)
 REG_PUMP_OUTPUT = 198  # 40199 - Y3: Pump output (REAL, 0.1)
 REG_DC_FAN1_OUTPUT = 199  # 40200 - DC Fan 1 Output (REAL, 0.1)
-REG_DC_FAN1_FEEDBACK = 200  # 40201 - DC Fan 1 Feedback
+REG_DC_FAN1_FEEDBACK = 202  # 40203 - Fan1 RPM (podle tabulky)
 REG_DC_FAN2_OUTPUT = 201  # 40202 - DC Fan 2 Output (REAL, 0.1)
-REG_DC_FAN2_FEEDBACK = 202  # 40203 - DC Fan 2 Feedback
+REG_DC_FAN2_FEEDBACK = 200  # 40201 - Fan2 RPM (podle tabulky)
 REG_REQUIRED_CAP = 203  # 40204 - Required capacity (REAL, 0.1)
 REG_ACTUAL_CAP = 204  # 40205 - Actual capacity (REAL, 0.1)
 REG_ACTUAL_SPEED = 205  # 40206 - Actual speed
@@ -153,10 +153,10 @@ REG_WORKING_HOURS_COMP = 366  # 40367-40368 - WorkingHours.Comp (UDINT, 2 regist
 REG_WORKING_HOURS_FAN = 368  # 40369-40370 - WorkingHours.Fan (UDINT, 2 registers)
 REG_WORKING_HOURS_3WAY = 370  # 40371-40372 - WorkingHours.Three way valve (UDINT, 2 registers)
 
-# Water Flow and Power (40373-40390)
+# Water Flow and Power (40373-40391)
 REG_WATER_FLOW = 372  # 40373-40374 - Water Flow Value L/h (REAL, 2 registers)
 REG_UNIT_POWER = 387  # 40388-40389 - Unit Power W (REAL, 2 registers)
-REG_UNIT_COP = 389  # 40390 - Unit_COP (REAL, 0.1)
+REG_UNIT_COP = 389  # 40390-40391 - Unit_COP (REAL, 2 registers) - OPRAVENO: Tabulka říká byte=1, ale ve skutečnosti to může být 32-bit float
 
 # SG Ready (40356-40364)
 REG_SG_MODE = 355  # 40356 - SG_Mode: 0=NORMAL, 1=SG-, 2=SG+, 3=SG++ (INT)
