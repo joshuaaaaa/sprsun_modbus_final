@@ -365,7 +365,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 # Register 386 might be part of total_power or reserved
                 
                 # Unit power (387-388, 2 registers REAL/FLOAT32)
-                unit_power_raw = registers_to_float32(power_regs[15], power_regs[16])
+                # OPRAVA: Unit Power má opačný byte order než ostatní float32 hodnoty (low-high místo high-low)
+                unit_power_raw = registers_to_float32(power_regs[16], power_regs[15])  # Prohozeno: low, high
                 data["unit_power"] = unit_power_raw if unit_power_raw is not None else None
 
                 # Unit COP (389, single register with 0.1 precision - 16-bit signed / 10)
