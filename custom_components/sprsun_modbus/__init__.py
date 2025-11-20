@@ -364,10 +364,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 
                 # Register 386 might be part of total_power or reserved
                 
-                # Unit power (387-388, 2 registers REAL/FLOAT32)
-                # OPRAVA: Unit Power má opačný byte order než ostatní float32 hodnoty (low-high místo high-low)
-                unit_power_raw = registers_to_float32(power_regs[16], power_regs[15])  # Prohozeno: low, high
-                data["unit_power"] = unit_power_raw if unit_power_raw is not None else None
+                # Unit power (387-388, 2 registers)
+                # POZOR: Unit Power NENÍ IEEE 754 float (testováno - nesmyslné hodnoty)
+                # Zkusíme jako 2x 16-bit scaled hodnoty (kW a W části)
+                # Registr 387 = kW (tisíce wattů), Registr 388 = W (jednotky/stovky)
+                unit_power_kw_raw = power_regs[15]  # reg 387
+                unit_power_w_raw = power_regs[16]   # reg 388
+                if unit_power_kw_raw is not None and unit_power_w_raw is not None:
+                    # Signed conversion
+                    if unit_power_kw_raw > 32767:
+                        unit_power_kw_raw = unit_power_kw_raw - 65536
+                    if unit_power_w_raw > 32767:
+                        unit_power_w_raw = unit_power_w_raw - 65536
+                    # Zkusíme: kW * 1000 + W (nebo jiné kombinace)
+                    data["unit_power"] = float(unit_power_kw_raw * 1000 + unit_power_w_raw)
+                else:
+                    data["unit_power"] = None
 
                 # Unit COP (389, single register with 0.1 precision - 16-bit signed / 10)
                 data["unit_cop"] = to_signed_16bit(power_regs[17])
