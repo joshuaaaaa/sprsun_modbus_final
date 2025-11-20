@@ -83,3 +83,36 @@ Tabulka výrobce je správná - Unit_COP je 1 registr s 0.1 precision.
 Podle kontroly jsou ostatní senzory správně namapované. Pokud nefungují další senzory, zkontrolujte:
 - Home Assistant logy pro modbus chyby
 - Konektivitu k zařízení (modbus slave ID, baud rate, atd.)
+
+---
+
+## Update 2025-11-20: Oprava Unit Power podle verze 1.0.1
+
+### Chyba #3: Unit Power Špatný Formát ✓ OPRAVENO
+
+**Problém:** Unit Power byl čten jako 2x 16-bit scaled hodnoty (kW * 1000 + W), což neodpovídá oficiální dokumentaci.
+
+**Podle tabulky:**
+- Unit Power: add=387, modbus=40388, **byte=2**, data type=**REAL** (IEEE 754 float32)
+
+**Původní implementace (CHYBNÁ):**
+```python
+# Registr 387 = kW (tisíce wattů), Registr 388 = W (jednotky/stovky)
+unit_power_kw_raw = power_regs[15]  # reg 387
+unit_power_w_raw = power_regs[16]   # reg 388
+data["unit_power"] = float(unit_power_kw_raw * 1000 + unit_power_w_raw)
+```
+
+**Nová implementace (SPRÁVNÁ):**
+```python
+# Unit power (387-388, 2 registers REAL/FLOAT32)
+# According to official documentation: add=387, byte=2, type=REAL (IEEE 754 float32)
+unit_power_raw = registers_to_float32(power_regs[15], power_regs[16])
+data["unit_power"] = unit_power_raw if unit_power_raw is not None else None
+```
+
+**Oprava:**
+- `__init__.py` řádky 367-370: Unit Power nyní čten jako IEEE 754 float32
+
+**Co testovat:**
+- **sensor.sprsun_unit_power** - měl by zobrazovat správnou hodnotu příkonu jednotky ve Wattech
